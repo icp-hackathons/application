@@ -4,13 +4,14 @@ import { ChooseNetwork } from './components/ChooseNetwork';
 import Header from './components/Header';
 import { InvestForm } from './components/InvestForm';
 import { useEffect, useState } from 'react';
-import { ARBITRUM_TOKENS, AnyCoinType, BASE_TOKENS } from './modules/wagmi';
+import { ARBITRUM_TOKENS, AnyCoinType, BASE_TOKENS, useCurrentNetwork } from './modules/wagmi';
 import { SetFrequency } from './components/SetFrequency';
 import useWindowDimensions from './utils/useWindowDimensions';
 import { BREAK_POINT_MOBILE } from './modules/constants';
 import { fetch0XSwapData } from './modules/actions';
 
 function App() {
+  const { myChain: selectedChain, networkType, myChains, switchNetwork } = useCurrentNetwork();
   const [sellCoin, setSellCoin] = useState<AnyCoinType>(BASE_TOKENS[0].symbol);
   const [receiveCoin, setReceiveCoin] = useState<AnyCoinType>(ARBITRUM_TOKENS[0].symbol);
   const [investAmount, setInvestAmount] = useState('0');
@@ -19,6 +20,8 @@ function App() {
   // useEffect(() => {
   //   fetch0XSwapData();
   // }, []);
+
+  console.log(selectedChain);
 
   const { width } = useWindowDimensions();
   const isMobile = width <= BREAK_POINT_MOBILE;
