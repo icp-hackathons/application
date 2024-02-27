@@ -31,6 +31,11 @@ const StyledIconWrap = styled.div`
   top: 52%;
   left: 48%;
   cursor: pointer;
+
+  @media (max-width: 768px) {
+    top: 49%;
+    left: 100px;
+  }
 `;
 
 type ChooseNetworkProps = {
@@ -96,6 +101,7 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
         </Flex>
 
         <Flex
+          vertical={isMobile}
           gap="large"
           style={{
             backgroundColor: '#273a3c',
@@ -128,7 +134,7 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
           <StyledIconWrap onClick={onSwapClick}>
             <SwapOutlined />
           </StyledIconWrap>
-          <Flex vertical style={{ alignSelf: 'flex-end' }} gap="small">
+          <Flex vertical style={{ alignSelf: isMobile ? 'flex-start' : 'flex-end' }} gap="small">
             <Typography.Text>Receive</Typography.Text>
             <Select value={receiveCoin} style={{ width: 120 }} onChange={onReceiveCoinChange}>
               {receivedTokens.map((token) => (
