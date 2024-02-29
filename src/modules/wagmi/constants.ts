@@ -1,4 +1,4 @@
-import { mainnet, sepolia, arbitrum, arbitrumNova } from 'viem/chains';
+import { arbitrum, base, arbitrumSepolia, baseSepolia } from 'viem/chains';
 import ethIcon from '../../assets/ethereum.svg';
 import arbitrumIcon from '../../assets/arbitrum.svg';
 import tetherIcon from '../../assets/tether.svg';
@@ -6,6 +6,7 @@ import usdcIcon from '../../assets/usdc.svg';
 import wbtcIcon from '../../assets/wbtc.svg';
 import uniIcon from '../../assets/uni.svg';
 import wethIcon from '../../assets/weth.svg';
+import baseIcon from '../../assets/base.svg';
 
 export type AnyCoinType = 'USDT' | 'USDC' | 'ETH' | 'MATIC' | 'BNB' | 'Card';
 export type CustomCoinType = 'USDT' | 'USDC';
@@ -30,15 +31,15 @@ export interface Coin {
 
 export const CHAINS = [
   {
-    key: 'ethereum',
-    name: 'Ethereum' as string,
+    key: 'base',
+    name: 'Base' as string,
     nativeToken: 'eth',
-    mainnet,
-    testnet: sepolia,
-    img: ethIcon,
+    mainnet: base,
+    testnet: baseSepolia,
+    img: baseIcon,
     explorer: {
-      testnet: 'https://sepolia.etherscan.io/',
-      mainnet: 'https://etherscan.io/',
+      mainnet: 'https://basescan.org/',
+      testnet: 'https://sepolia.basescan.org/',
     },
     tokens: [
       {
@@ -60,13 +61,13 @@ export const CHAINS = [
   {
     key: 'arbitrum',
     name: 'Arbitrum' as string,
-    nativeToken: 'bnb',
+    nativeToken: 'eth',
     mainnet: arbitrum,
-    testnet: arbitrumNova,
+    testnet: arbitrumSepolia,
     img: arbitrumIcon,
     explorer: {
       testnet: 'https://arbiscan.io/',
-      mainnet: 'https://arbiscan.io/',
+      testnet: 'https://sepolia.arbiscan.io/',
     },
     tokens: [
       {

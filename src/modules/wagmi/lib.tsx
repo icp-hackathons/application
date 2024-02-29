@@ -46,7 +46,7 @@ export default function WagmiProvider({ children }: { children: React.ReactNode 
 
 export const useCurrentNetworkType = () => NETWORK_TYPE;
 
-const networkState = createSingletonState<MyChainKey>('ethereum');
+const networkState = createSingletonState<MyChainKey>('arbitrum');
 
 export const useCurrentNetwork = () => {
   const { isConnected } = useAccount();
