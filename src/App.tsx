@@ -62,9 +62,8 @@ function App() {
             <SetFrequency frequency={frequency} onFrequencyChange={onFrequencyChange} />
           </Space>
           <Card title="What is DCA?">
-            Lorem ipsum dolor sit amet consectetur. Enim mattis fames molestie amet dolor. Mauris cursus rutrum aliquam
-            parturient nunc et. Rhoncus arcu velit porttitor ullamcorper. Eu habitant eget volutpat malesuada neque
-            egestas ornare tellus sed.
+            Dollar-cost averaging is a tool an investor can use to build savings and wealth over a long period while neutralizing the short-term volatility in the market.
+            The purchases occur regardless of the asset's price and at regular intervals. In effect, this strategy removes much of the detailed work of attempting to time the market in order to make purchases of assets at the best prices.
           </Card>
         </Flex>
       </main>
