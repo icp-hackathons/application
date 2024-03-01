@@ -19,12 +19,13 @@ type InvestFormProps = {
 };
 
 export const InvestForm = ({ investAmount, onInvestAmountChange, sellToken }: InvestFormProps) => {
+  console.log( {sellToken });
   const { isConnected, address } = useAccount();
   const tokenAddress = useTokenAddress('USDT'); // or 'USDC' or 'NATIVE'
 
   const { data: userBalance, refetch: refetchBalance } = useBalance({
     address,
-    token: tokenAddress,
+    token: sellToken.address,
     watch: true,
   });
 

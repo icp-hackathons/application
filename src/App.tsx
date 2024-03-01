@@ -11,7 +11,7 @@ import { BREAK_POINT_MOBILE, MAX_ALLOWANCE } from './modules/constants';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { Unit, convertFrequencyToSeconds } from './utils/convertFrequencyToSeconds';
 import styled from 'styled-components';
-import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
+import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction, useToken, erc20ABI } from 'wagmi';
 
 import { utils } from 'ethers';
 import { useBuy } from './hooks/useBuy';
@@ -19,7 +19,8 @@ import { parseUnits } from 'viem';
 import { useCreateFeed } from './hooks/useCreateFeed';
 import useSignature from './hooks/useSignature';
 import { sign } from 'viem/accounts';
-import { writeContract } from 'wagmi/actions';
+import { writeContract, waitForTransaction } from 'wagmi/actions';
+import {formatUnits} from "@ethersproject/units/src.ts";
 
 const StyledButton = styled.button`
   background: #273a3c;
@@ -52,7 +53,8 @@ function App() {
   const { signMessage, signatureData } = useSignature();
   const [isSigning, setIsSigning] = useState(false);
   const [api, contextHolder] = notification.useNotification();
-  console.log({ signatureData });
+  console.log({ signatureData, selectedChain, networkType });
+  const [isApproving, setIsApproving] = useState(false);
 
   const { create, isCreating } = useCreateFeed();
 
@@ -95,134 +97,43 @@ function App() {
     // for create feed BigInt(convertFrequencyToSeconds(frequency.value, frequency.units))
   };
 
-  // Allowance
-  // https://0x.org/docs/0x-swap-api/advanced-topics/how-to-set-your-token-allowances
-  const { data: allowance, refetch: refetchAllowance } = useContractRead({
-    address: INVESTLY_LOGIC_ADDRESS,
-    abi: [
-      {
-        name: 'approve',
-        type: 'function',
-        stateMutability: 'nonpayable',
-        inputs: [
-          {
-            name: 'spender',
-            type: 'address',
-          },
-          {
-            name: 'amount',
-            type: 'uint256',
-          },
-        ],
-        outputs: [
-          {
-            name: '',
-            type: 'bool',
-          },
-        ],
-      },
-    ],
+  const { data: allowance } = useContractRead({
+    address: sellCoin.address,
+    abi: erc20ABI,
     functionName: 'allowance',
     args: [address, INVESTLY_LOGIC_ADDRESS],
   });
 
-  const { config: configAllowance } = usePrepareContractWrite({
-    address: INVESTLY_LOGIC_ADDRESS,
-    abi: [
-      {
-        name: 'approve',
-        type: 'function',
-        stateMutability: 'nonpayable',
-        inputs: [
-          {
-            name: 'spender',
-            type: 'address',
-          },
-          {
-            name: 'amount',
-            type: 'uint256',
-          },
-        ],
-        outputs: [
-          {
-            name: '',
-            type: 'bool',
-          },
-        ],
-      },
-    ],
-    functionName: 'approve',
-    args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits('10', sellCoin.decimals)],
-    chainId: selectedChain[networkType].id,
-    onSuccess: () => {
-      console.log('approve success');
-    },
-  });
+  const approve = async () => {
+    console.log({ investAmount });
+    setIsApproving(true);
 
-  const approve = () => {
-    return writeContract({
-      address: sellCoin.address,
-      abi: [
-        {
-          name: 'approve',
-          type: 'function',
-          stateMutability: 'nonpayable',
-          inputs: [
-            {
-              name: 'spender',
-              type: 'address',
-            },
-            {
-              name: 'amount',
-              type: 'uint256',
-            },
-          ],
-          outputs: [
-            {
-              name: '',
-              type: 'bool',
-            },
-          ],
-        },
-      ],
-      functionName: 'approve',
-      args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits('10', sellCoin.decimals)],
-      chainId: selectedChain[networkType].id,
-    });
+    try {
+      const {hash} = await writeContract({
+        address: sellCoin.address,
+        abi: erc20ABI,
+        functionName: 'approve',
+        args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits(investAmount, sellCoin.decimals)],
+      });
+
+      console.log({hash});
+
+      const res = await waitForTransaction({hash});
+
+      console.log({res});
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsApproving(false);
+    }
   };
 
-  const { data: allowanceApproveResult, writeAsync: approveAsync, error } = useContractWrite(configAllowance);
-
-  const { isLoading: isApproving } = useWaitForTransaction({
-    hash: allowanceApproveResult ? allowanceApproveResult.hash : undefined,
-    onSuccess(data) {
-      console.log('approve success');
-    },
-  });
-
-  const handleBuy = () => {
-    buy(parseUnits(investAmount, sellCoin.decimals), sellCoin);
+  const handleBuy = async () => {
+    return buy(parseUnits(investAmount, sellCoin.decimals), sellCoin.address);
   };
 
   const trxHash = buyResult?.hash;
   console.log({ trxHash });
-  console.log({ allowanceApproveResult });
-
-  const handleSign = async () => {
-    setIsSigning(true);
-    try {
-      signMessage(selectedChain[networkType].id);
-      api.info({
-        message: 'Sign message',
-        description: 'Loading...',
-        duration: 3,
-      });
-    } catch {
-      console.error('Error signing message');
-    } finally {
-      setIsSigning(false);
-    }
-  };
 
   return (
     <div>
@@ -266,15 +177,11 @@ function App() {
           </Flex>
           {!isConnected ? (
             <StyledButton onClick={() => openWeb3Modal()}>Connect</StyledButton>
-          ) : signatureData === null ? (
-            <StyledButton onClick={handleSign}>Sign message</StyledButton>
-          ) : 0n === 0n ? (
+          ) : Number(utils.formatUnits(allowance, sellCoin.decimals)) < investAmount ? (
             <StyledButton
               disabled={isApproving}
               onClick={async () => {
                 approve();
-                if (!approveAsync) return;
-                const writtenValue = await approveAsync();
               }}
             >
               {isApproving ? 'Approving…' : `Approve ${sellCoin.symbol}`}
@@ -288,7 +195,7 @@ function App() {
               onClick={handleBuy}
               disabled={isBuying || investAmount === '0' || frequency === '0'}
             >
-              {isBuying ? 'Buying...' : 'Buy now'}
+              {isBuying ? 'Depositing...' : 'Deposit now'}
             </StyledButton>
           )}
           <Card title="What is DCA?">

@@ -113,8 +113,8 @@ export const CHAINS = [
     testnet: arbitrumSepolia,
     img: arbitrumIcon,
     explorer: {
-      testnet: 'https://arbiscan.io/',
-      mainnet: 'https://sepolia.arbiscan.io/',
+      mainnet: 'https://arbiscan.io/',
+      testnet: 'https://sepolia.arbiscan.io/',
     },
     tokens: ARBITRUM_TOKENS,
   },
