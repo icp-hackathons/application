@@ -1,4 +1,4 @@
-import { Card, Flex, Space, Spin } from 'antd';
+import { Card, Flex, Space, Spin, notification } from 'antd';
 import './App.css';
 import { ChooseNetwork } from './components/ChooseNetwork';
 import Header from './components/Header';
@@ -14,8 +14,11 @@ import styled from 'styled-components';
 import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
 
 import { utils } from 'ethers';
-import { useBuy } from './modules/useBuy';
+import { useBuy } from './hooks/useBuy';
 import { parseUnits } from 'viem';
+import { useCreateFeed } from './hooks/useCreateFeed';
+import useSignature from './hooks/useSignature';
+import { sign } from 'viem/accounts';
 
 const StyledButton = styled.button`
   background: #273a3c;
@@ -45,6 +48,16 @@ function App() {
   const [frequency, setFrequency] = useState('0');
   const { open: openWeb3Modal } = useWeb3Modal();
   const { isConnected, address } = useAccount();
+  const { signMessage, signatureData } = useSignature();
+  const [isSigning, setIsSigning] = useState(false);
+  const [api, contextHolder] = notification.useNotification();
+  console.log({ signatureData });
+
+  const { create, isCreating } = useCreateFeed();
+
+  useEffect(() => {
+    if (signatureData !== null) create(signatureData);
+  }, [signatureData]);
 
   const {
     data: buyResult,
@@ -163,8 +176,25 @@ function App() {
   console.log({ trxHash });
   console.log({ allowanceApproveResult });
 
+  const handleSign = async () => {
+    setIsSigning(true);
+    try {
+      signMessage(selectedChain[networkType].id);
+      api.info({
+        message: 'Sign message',
+        description: 'Loading...',
+        duration: 3,
+      });
+    } catch {
+      console.error('Error signing message');
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
   return (
     <div>
+      {contextHolder}
       <main>
         <Header />
         <Flex vertical className="wrapper" gap="middle">
@@ -204,6 +234,8 @@ function App() {
           </Flex>
           {!isConnected ? (
             <StyledButton onClick={() => openWeb3Modal()}>Connect</StyledButton>
+          ) : signatureData === null ? (
+            <StyledButton onClick={handleSign}>Sign message</StyledButton>
           ) : allowance === 0n ? (
             <StyledButton
               disabled={isApproving}

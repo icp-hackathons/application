@@ -1,7 +1,7 @@
 import { utils } from 'ethers';
 import { useContractWrite } from 'wagmi';
-import { Token } from './wagmi';
-import { ABI } from './abi';
+import { Token } from '../modules/wagmi';
+import { ABI } from '../modules/abi';
 
 export const useBuy = (selectedChainId: any) => {
   let buy: (amount: bigint, token: Token) => void;

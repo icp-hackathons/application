@@ -1,4 +1,4 @@
-import { useTokenAddress } from '@/modules/useTokenAddress';
+import { useTokenAddress } from '@/hooks/useTokenAddress';
 import { Card, Flex, Space } from 'antd';
 import { useAccount, useBalance } from 'wagmi';
 import { StyledInput } from './SetFrequency';
