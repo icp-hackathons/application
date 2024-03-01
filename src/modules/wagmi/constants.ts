@@ -22,6 +22,8 @@ export type Token = {
 
 export const WALLET_CONNECT_PROJECT_ID = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
+export const INVESTLY_LOGIC_ADDRESS = '0x5b52e6538936F0720d0737Db62c3E80971FE624e';
+
 export const WAGMI_METADATA = {
   name: import.meta.env.VITE_WAGMI_METADATA_NAME,
   description: import.meta.env.VITE_WAGMI_METADATA_DESCRIPTION,

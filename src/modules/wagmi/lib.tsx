@@ -51,9 +51,9 @@ const networkState = createSingletonState<MyChainKey>('arbitrum');
 export const useCurrentNetwork = () => {
   const { isConnected } = useAccount();
   const networkType = useCurrentNetworkType();
-  const { chain: connectedChain } = useNetwork();
+  const { chain: connectedChain, chains } = useNetwork();
   const [currentNetwork, setCurrentNetwork] = useSingletonState(networkState);
-  const { switchNetworkAsync } = useSwitchNetwork();
+  const { switchNetworkAsync, switchNetwork } = useSwitchNetwork();
 
   const foundedChain = CHAINS.find((c) => c.key === currentNetwork) || CHAINS[0];
 
@@ -71,11 +71,8 @@ export const useCurrentNetwork = () => {
   );
 
   React.useEffect(() => {
-    if (connectedChain) {
-      const connectedMyChain = CHAINS.find((c) => c[networkType].id === connectedChain.id);
-
-      if (connectedMyChain && connectedMyChain.key !== currentNetwork) setCurrentNetwork(connectedMyChain.key);
-    }
+    setCurrentNetwork('arbitrum');
+    switchNetwork?.(chains[1].id);
   }, [connectedChain]);
 
   return {

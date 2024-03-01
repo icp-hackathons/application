@@ -4,19 +4,29 @@ import { ChooseNetwork } from './components/ChooseNetwork';
 import Header from './components/Header';
 import { InvestForm } from './components/InvestForm';
 import { useEffect, useState } from 'react';
-import { ARBITRUM_TOKENS, AnyCoinType, BASE_TOKENS, Token, useCurrentNetwork } from './modules/wagmi';
+import { toast } from 'react-toastify';
+import {
+  ARBITRUM_TOKENS,
+  AnyCoinType,
+  BASE_TOKENS,
+  Token,
+  useCurrentNetwork,
+  INVESTLY_LOGIC_ADDRESS
+} from './modules/wagmi';
 import { SetFrequency } from './components/SetFrequency';
 import useWindowDimensions from './utils/useWindowDimensions';
 import { BREAK_POINT_MOBILE, MAX_ALLOWANCE } from './modules/constants';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { Unit, convertFrequencyToSeconds } from './utils/convertFrequencyToSeconds';
 import styled from 'styled-components';
-import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction, useToken, erc20ABI } from 'wagmi';
+import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction, useToken, erc20ABI, useSwitchNetwork } from 'wagmi';
+import { ABI } from './modules/abi.ts';
 
 import { utils } from 'ethers';
 import { useBuy } from './hooks/useBuy';
 import { parseUnits } from 'viem';
 import { useCreateFeed } from './hooks/useCreateFeed';
+import { useCreatePythiaSubscription } from './hooks/useCreatePythisSubscription';
 import useSignature from './hooks/useSignature';
 import { sign } from 'viem/accounts';
 import { writeContract, waitForTransaction } from 'wagmi/actions';
@@ -40,14 +50,13 @@ const StyledSpinWrap = styled(Flex)`
   right: 0;
 `;
 
-const INVESTLY_LOGIC_ADDRESS = '0x269C36463d6284775A9B944A4Fa3cF02a08f6dE5';
-
 function App() {
   const { myChain: selectedChain, networkType, myChains, switchNetwork } = useCurrentNetwork();
   const [sellCoin, setSellCoin] = useState<Token>(selectedChain.tokens[0]);
   const [receiveCoin, setReceiveCoin] = useState<Token>(selectedChain.tokens[1]);
   const [investAmount, setInvestAmount] = useState('0');
   const [frequency, setFrequency] = useState('0');
+  const [frequencyValue, setFrequencyValue] = useState('0');
   const { open: openWeb3Modal } = useWeb3Modal();
   const { isConnected, address } = useAccount();
   const { signMessage, signatureData } = useSignature();
@@ -55,8 +64,10 @@ function App() {
   const [api, contextHolder] = notification.useNotification();
   console.log({ signatureData, selectedChain, networkType });
   const [isApproving, setIsApproving] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
 
-  const { create, isCreating } = useCreateFeed();
+  const { create: createFeed, isCreatingFeed } = useCreateFeed();
+  const { create: createSubscription, isCreating: isCreatingSubscription } = useCreatePythiaSubscription();
 
   // useEffect(() => {
   //   if (signatureData !== null) create(signatureData);
@@ -91,34 +102,72 @@ function App() {
     if (!/^[0-9]*\.?[0-9]*$/.test(value)) {
       return;
     }
+
+    // set seconds
+    switch(units) {
+      case 'day':
+        setFrequencyValue(convertFrequencyToSeconds(1, 'day'));
+        break;
+      case 'week':
+        setFrequencyValue(convertFrequencyToSeconds(1, 'week'));
+        break;
+      case 'month':
+        setFrequencyValue(convertFrequencyToSeconds(1, 'month'));
+        break;
+    }
+
     setFrequency(value);
 
     // console.log(convertFrequencyToSeconds(Number(value), units));
     // for create feed BigInt(convertFrequencyToSeconds(frequency.value, frequency.units))
   };
 
-  const { data: allowance } = useContractRead({
+  const { data: allowance, refetch: refetchAllowance } = useContractRead({
     address: sellCoin.address,
     abi: erc20ABI,
     functionName: 'allowance',
     args: [address, INVESTLY_LOGIC_ADDRESS],
   });
 
+  const { data: tokenBalance } = useContractRead({
+    address: INVESTLY_LOGIC_ADDRESS,
+    abi: ABI,
+    functionName: 'tokenBalances',
+    args: [address, sellCoin.address],
+  });
+
+  console.log({ allowance, tokenBalance, address, sellCoin });
+
   const approve = async () => {
     console.log({ investAmount });
     setIsApproving(true);
 
     try {
-      const {hash} = await writeContract({
-        address: sellCoin.address,
-        abi: erc20ABI,
-        functionName: 'approve',
-        args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits(investAmount, sellCoin.decimals)],
-      });
+      const { hash } = await toast.promise(
+        writeContract({
+          address: sellCoin.address,
+          abi: erc20ABI,
+          functionName: 'approve',
+          args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits(investAmount, sellCoin.decimals)],
+        }),
+        {
+          pending: `Approving...`,
+          success: `Approved successfully`,
+          error: {
+            render({ error }) {
+              console.error(`Deposit`, error);
+
+              return 'Something went wrong. Try again later.';
+            },
+          },
+        }
+      );
 
       console.log({hash});
 
       const res = await waitForTransaction({hash});
+
+      refetchAllowance();
 
       console.log({res});
     } catch (error) {
@@ -128,13 +177,111 @@ function App() {
     }
   };
 
-  const handleBuy = async () => {
-    return buy(parseUnits(investAmount, sellCoin.decimals), sellCoin.address);
+  const handleSubscribe = async () => {
+    try {
+      setIsSubscribing(true);
+
+      console.log({investAmount, frequency});
+
+      const {hash} = await toast.promise(
+        writeContract({
+          address: INVESTLY_LOGIC_ADDRESS,
+          abi: ABI,
+          functionName: 'depositTokenAndSubscribe',
+          args: [sellCoin.address, receiveCoin.address, parseUnits(investAmount, sellCoin.decimals), parseUnits((Number(investAmount) / Number(frequency)).toFixed(4), sellCoin.decimals)],
+        }),
+        {
+          pending: `Depositing...`,
+          success: `Deposited successfully`,
+          error: {
+            render({ error }) {
+              console.error(`Deposit`, error);
+
+              return 'Something went wrong. Try again later.';
+            },
+          },
+        }
+      );
+
+      console.log({hash});
+
+      const res = await waitForTransaction({hash});
+
+      console.log('subscription added', {res});
+
+      // const data = "0x0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb90000000000000000000000000000000000000000000000000000000000989680"
+      const data = res.logs[3].data;
+      const topic = res.logs[3].topics[0];
+
+      const callDataInterface = new utils.Interface([
+        'event SubscriptionAdded(uint32 subId, address indexed user, address sellToken, address indexed buyToken, uint256 sellAmount)',
+      ]);
+
+      const decodedCallData = callDataInterface.decodeEventLog(
+        'SubscriptionAdded',
+        data
+      );
+
+      const subId = decodedCallData[0];
+      // const subId = 5;
+      const feedId = `investly-${address}-${subId}`;
+
+      console.log({ decodedCallData });
+
+      // res.blockHash
+      // res.logs
+
+      await toast.promise(
+        createFeed({
+          feedId,
+          blockHash: res?.blockHash,
+          topic,
+        }),
+        {
+          pending: `Creating Feed...`,
+          success: `Feed created`,
+          error: {
+            render({ error }) {
+              console.error(`Deposit`, error);
+
+              return 'Something went wrong. Try again later.';
+            },
+          },
+        }
+      );
+
+      console.log({ selectedChain, networkType });
+
+      await toast.promise(
+        createSubscription({
+          feedId: `custom_${feedId}`,
+          label: `Subscription for ${feedId}`,
+          chainId: selectedChain[networkType].id,
+          frequency: frequencyValue,
+        }),
+        {
+          pending: `Creating Subscription...`,
+          success: `Subscription created`,
+          error: {
+            render({ error }) {
+              console.error(`Deposit`, error);
+
+              return 'Something went wrong. Try again later.';
+            },
+          },
+        }
+      );
+
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubscribing(false);
+    }
   };
 
   const trxHash = buyResult?.hash;
-  console.log({ trxHash });
-
+  // console.log({ trxHash });
+  // Number(utils.formatUnits(tokenBalance ?? 0, sellCoin.decimals)) < investAmount ?
   return (
     <div>
       {contextHolder}
@@ -177,7 +324,7 @@ function App() {
           </Flex>
           {!isConnected ? (
             <StyledButton onClick={() => openWeb3Modal()}>Connect</StyledButton>
-          ) : Number(utils.formatUnits(allowance, sellCoin.decimals)) < investAmount ? (
+          ) : Number(utils.formatUnits(allowance ?? 0, sellCoin.decimals)) < investAmount ? (
             <StyledButton
               disabled={isApproving}
               onClick={async () => {
@@ -187,16 +334,18 @@ function App() {
               {isApproving ? 'Approving…' : `Approve ${sellCoin.symbol}`}
             </StyledButton>
           ) : (
-            <StyledButton
-              style={{
-                textTransform: 'uppercase',
-                width: '100%',
-              }}
-              onClick={handleBuy}
-              disabled={isBuying || investAmount === '0' || frequency === '0'}
-            >
-              {isBuying ? 'Depositing...' : 'Deposit now'}
-            </StyledButton>
+            (
+              <StyledButton
+                style={{
+                  textTransform: 'uppercase',
+                  width: '100%',
+                }}
+                onClick={handleSubscribe}
+                disabled={isBuying || investAmount === '0' || frequency === '0' || isCreatingFeed || isCreatingSubscription || isSubscribing}
+              >
+                {isSubscribing ? 'Depositing & Subscribing...' : 'Deposit & Subscribe'}
+              </StyledButton>
+            )
           )}
           <Card title="What is DCA?">
             Dollar-cost averaging is a tool an investor can use to build savings and wealth over a long period while

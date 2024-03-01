@@ -1,11 +1,9 @@
 import { utils } from 'ethers';
 import { writeContract, readContract, waitForTransaction } from '@wagmi/core';
 import { remove0x } from '@/utils/truncateAddress';
-import { ARBITRUM_TOKENS } from './wagmi/constants';
+import {ARBITRUM_TOKENS, INVESTLY_LOGIC_ADDRESS} from './wagmi/constants';
 
 // export const ZERO_X_API_KEY = import.meta.env.VITE_ZERO_X_API_KEY;
-
-const INVESTLY_LOGIC_ADDRESS = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f'; // some constant address
 
 export const fetch0XSwapData = async () => {
   const headers = { '0x-api-key': ZERO_X_API_KEY }; // This is a placeholder. Get your live API key from the 0x Dashboard (https://dashboard.0x.org/apps)
