@@ -19,6 +19,7 @@ import { parseUnits } from 'viem';
 import { useCreateFeed } from './hooks/useCreateFeed';
 import useSignature from './hooks/useSignature';
 import { sign } from 'viem/accounts';
+import { writeContract } from 'wagmi/actions';
 
 const StyledButton = styled.button`
   background: #273a3c;
@@ -55,9 +56,9 @@ function App() {
 
   const { create, isCreating } = useCreateFeed();
 
-  useEffect(() => {
-    if (signatureData !== null) create(signatureData);
-  }, [signatureData]);
+  // useEffect(() => {
+  //   if (signatureData !== null) create(signatureData);
+  // }, [signatureData]);
 
   const {
     data: buyResult,
@@ -80,9 +81,8 @@ function App() {
     if (!/^[0-9]*\.?[0-9]*$/.test(value)) {
       return;
     }
-    if (Number(value) !== 0) {
-      setInvestAmount(value);
-    }
+
+    setInvestAmount(value);
   };
 
   const onFrequencyChange = (value: string, units: Unit) => {
@@ -152,12 +152,44 @@ function App() {
       },
     ],
     functionName: 'approve',
-    args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits(investAmount, sellCoin.decimals)],
+    args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits('10', sellCoin.decimals)],
     chainId: selectedChain[networkType].id,
     onSuccess: () => {
       console.log('approve success');
     },
   });
+
+  const approve = () => {
+    return writeContract({
+      address: sellCoin.address,
+      abi: [
+        {
+          name: 'approve',
+          type: 'function',
+          stateMutability: 'nonpayable',
+          inputs: [
+            {
+              name: 'spender',
+              type: 'address',
+            },
+            {
+              name: 'amount',
+              type: 'uint256',
+            },
+          ],
+          outputs: [
+            {
+              name: '',
+              type: 'bool',
+            },
+          ],
+        },
+      ],
+      functionName: 'approve',
+      args: [INVESTLY_LOGIC_ADDRESS, utils.parseUnits('10', sellCoin.decimals)],
+      chainId: selectedChain[networkType].id,
+    });
+  };
 
   const { data: allowanceApproveResult, writeAsync: approveAsync, error } = useContractWrite(configAllowance);
 
@@ -236,10 +268,11 @@ function App() {
             <StyledButton onClick={() => openWeb3Modal()}>Connect</StyledButton>
           ) : signatureData === null ? (
             <StyledButton onClick={handleSign}>Sign message</StyledButton>
-          ) : allowance === 0n ? (
+          ) : 0n === 0n ? (
             <StyledButton
               disabled={isApproving}
               onClick={async () => {
+                approve();
                 if (!approveAsync) return;
                 const writtenValue = await approveAsync();
               }}
@@ -253,7 +286,7 @@ function App() {
                 width: '100%',
               }}
               onClick={handleBuy}
-              disabled={isBuying}
+              disabled={isBuying || investAmount === '0' || frequency === '0'}
             >
               {isBuying ? 'Buying...' : 'Buy now'}
             </StyledButton>
