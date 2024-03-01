@@ -68,13 +68,14 @@ export const theme = {
     Select: {
       colorBgContainer: 'transparent',
       colorText: 'white !important',
-      colorBgElevated: '#091325',
+      colorBgElevated: '#1c3639',
       colorTextQuaternary: 'white',
-      controlItemBgActive: '#081A3C',
+      controlItemBgActive: '#171920',
       colorTextPlaceholder: 'white',
       colorTextTertiary: 'white',
-      colorBorder: 'rgba(119,229,239, 0.4)',
-      optionPadding: '10px 15px',
+      colorBorder: 'transparent !important',
+      optionPadding: '10px',
+      paddingSM: 0,
     },
     Modal: {
       colorBgElevated: '#192024',
@@ -111,7 +112,7 @@ export const theme = {
       borderRadiusLG: 12,
       colorText: '#4A6293',
       colorBorderSecondary: '#15223B',
-      paddingLG: 15,
+      paddingLG: 20,
     },
     Spin: {
       colorPrimary: 'var(--primary-color, #77E5EF)',

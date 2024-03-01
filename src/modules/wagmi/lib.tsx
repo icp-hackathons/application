@@ -61,7 +61,7 @@ export const useCurrentNetwork = () => {
     async (selectedKey: MyChainKey) => {
       const selectedChain = CHAINS.find((c) => c.key === selectedKey);
       if (!isConnected) {
-        setCurrentNetwork(selectedKey);
+        setCurrentNetwork(selectedKey); // if not connected, just set the network
       } else if (switchNetworkAsync && selectedChain) {
         await switchNetworkAsync(selectedChain[networkType].id);
         setCurrentNetwork(selectedKey);

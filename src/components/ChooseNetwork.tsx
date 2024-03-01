@@ -1,8 +1,8 @@
 import { BREAK_POINT_MOBILE } from '@/modules/constants';
-import { ARBITRUM_TOKENS, AnyCoinType, BASE_TOKENS, Coin, MyChainKey, useCurrentNetwork } from '@/modules/wagmi';
+import { ARBITRUM_TOKENS, AnyCoinType, BASE_TOKENS, MyChainKey, Token, useCurrentNetwork } from '@/modules/wagmi';
 import useWindowDimensions from '@/utils/useWindowDimensions';
 import { Card, Flex, Modal, Select, Space, Typography } from 'antd';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { DownOutlined, SwapOutlined } from '@ant-design/icons';
 
@@ -39,18 +39,23 @@ const StyledIconWrap = styled.div`
 `;
 
 type ChooseNetworkProps = {
-  sellCoin: Coin['title'];
-  receiveCoin: Coin['title'];
-  setSellCoin: (coin: Coin['title']) => void;
-  setReceiveCoin: (coin: Coin['title']) => void;
+  sellCoin: Token;
+  receiveCoin: Token;
+  setSellCoin: (coin: Token) => void;
+  setReceiveCoin: (coin: Token) => void;
 };
 
 export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCoin }: ChooseNetworkProps) => {
   const [isNetworkModalVisible, setNetworkModalVisible] = useState(false);
   const { myChain: selectedChain, networkType, myChains, switchNetwork } = useCurrentNetwork();
 
-  const [baseTokens, setBaseTokens] = useState(BASE_TOKENS);
-  const [receivedTokens, setReceivedTokens] = useState(ARBITRUM_TOKENS);
+  const [baseTokens, setBaseTokens] = useState(selectedChain.tokens);
+  const [receivedTokens, setReceivedTokens] = useState(selectedChain.tokens);
+
+  useEffect(() => {
+    setBaseTokens(selectedChain.tokens);
+    setReceivedTokens(selectedChain.tokens);
+  }, [selectedChain]);
 
   const { width } = useWindowDimensions();
   const isMobile = width <= BREAK_POINT_MOBILE;
@@ -68,15 +73,13 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
   };
 
   const onReceiveCoinChange = (value: AnyCoinType) => {
-    if (value !== sellCoin) {
-      setReceiveCoin(value);
-    }
+    const coin = selectedChain.tokens.find((token) => token.symbol === value);
+    if (coin) setReceiveCoin(coin);
   };
 
   const onSellCoinChange = (value: AnyCoinType) => {
-    if (value !== receiveCoin) {
-      setSellCoin(value);
-    }
+    const coin = selectedChain.tokens.find((token) => token.symbol === value);
+    if (coin) setSellCoin(coin);
   };
 
   return (
@@ -85,7 +88,7 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
         <Flex justify="space-between" align="center" gap="middle">
           <Flex gap="small" vertical>
             {!isMobile && <StyledTitle>Select Network</StyledTitle>}
-            <StyledNetwork gap="small" align="center" justify="center" onClick={() => setNetworkModalVisible(true)}>
+            <StyledNetwork gap="small" align="center" justify="flex-start" onClick={() => setNetworkModalVisible(true)}>
               {selectedChain ? <img src={selectedChain.img} alt="Network" style={{ maxWidth: 24 }} /> : null}
               <Typography.Text
                 style={{
@@ -114,21 +117,23 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
         >
           <Flex vertical style={{ flex: 1 }} gap="small">
             <Typography.Text>Sell</Typography.Text>
-            <Select value={sellCoin} style={{ width: 120 }} onChange={onSellCoinChange}>
-              {baseTokens.map((token) => (
-                <Select.Option key={token.symbol} value={token.symbol}>
-                  <Flex gap="small" align="center">
-                    <StyledCoinIcon
-                      src={token.img}
-                      alt={token.symbol}
-                      style={{
-                        maxWidth: 24,
-                      }}
-                    />
-                    <span>{token.symbol}</span>
-                  </Flex>
-                </Select.Option>
-              ))}
+            <Select value={sellCoin.symbol} style={{ width: 120 }} onChange={onSellCoinChange}>
+              {baseTokens
+                .filter((token) => token.symbol !== receiveCoin.symbol)
+                .map((token) => (
+                  <Select.Option key={token.symbol} value={token.symbol}>
+                    <Flex gap="small" align="center">
+                      <StyledCoinIcon
+                        src={token.img}
+                        alt={token.symbol}
+                        style={{
+                          maxWidth: 24,
+                        }}
+                      />
+                      <span>{token.symbol}</span>
+                    </Flex>
+                  </Select.Option>
+                ))}
             </Select>
           </Flex>
           <StyledIconWrap onClick={onSwapClick}>
@@ -136,21 +141,23 @@ export const ChooseNetwork = ({ sellCoin, receiveCoin, setReceiveCoin, setSellCo
           </StyledIconWrap>
           <Flex vertical style={{ alignSelf: isMobile ? 'flex-start' : 'flex-end' }} gap="small">
             <Typography.Text>Receive</Typography.Text>
-            <Select value={receiveCoin} style={{ width: 120 }} onChange={onReceiveCoinChange}>
-              {receivedTokens.map((token) => (
-                <Select.Option key={token.symbol} value={token.symbol}>
-                  <Flex gap="small" align="center">
-                    <StyledCoinIcon
-                      src={token.img}
-                      alt={token.symbol}
-                      style={{
-                        maxWidth: 24,
-                      }}
-                    />
-                    <span>{token.symbol}</span>
-                  </Flex>
-                </Select.Option>
-              ))}
+            <Select value={receiveCoin.symbol} style={{ width: 120 }} onChange={onReceiveCoinChange}>
+              {receivedTokens
+                .filter((token) => token.symbol !== sellCoin.symbol)
+                .map((token) => (
+                  <Select.Option key={token.symbol} value={token.symbol}>
+                    <Flex gap="small" align="center">
+                      <StyledCoinIcon
+                        src={token.img}
+                        alt={token.symbol}
+                        style={{
+                          maxWidth: 24,
+                        }}
+                      />
+                      <span>{token.symbol}</span>
+                    </Flex>
+                  </Select.Option>
+                ))}
             </Select>
           </Flex>
         </Flex>

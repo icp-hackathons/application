@@ -3,6 +3,7 @@ import { Card, Flex, Space } from 'antd';
 import { useAccount, useBalance } from 'wagmi';
 import { StyledInput } from './SetFrequency';
 import styled from 'styled-components';
+import { Token } from '@/modules/wagmi';
 
 const StyledTag = styled.div`
   background-color: #273a3c;
@@ -14,9 +15,10 @@ const StyledTag = styled.div`
 type InvestFormProps = {
   investAmount: string;
   onInvestAmountChange: (value: string) => void;
+  sellToken: Token;
 };
 
-export const InvestForm = ({ investAmount, onInvestAmountChange }: InvestFormProps) => {
+export const InvestForm = ({ investAmount, onInvestAmountChange, sellToken }: InvestFormProps) => {
   const { isConnected, address } = useAccount();
   const tokenAddress = useTokenAddress('USDT'); // or 'USDC' or 'NATIVE'
 
@@ -31,7 +33,7 @@ export const InvestForm = ({ investAmount, onInvestAmountChange }: InvestFormPro
   });
 
   return (
-    <Card title="How much USDC do you want to invest">
+    <Card title={`How much ${sellToken.symbol} do you want to invest`}>
       <Flex vertical gap="small">
         <Flex align="center">
           <StyledInput
@@ -55,6 +57,7 @@ export const InvestForm = ({ investAmount, onInvestAmountChange }: InvestFormPro
             Balance: {formattedBalance} {userBalance?.symbol}{' '}
           </span>
         ) : null}
+        {/* show balance for the current chain and sell token  */}
       </Flex>
     </Card>
   );

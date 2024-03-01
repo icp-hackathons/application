@@ -3,7 +3,7 @@ import { writeContract, readContract, waitForTransaction } from '@wagmi/core';
 import { remove0x } from '@/utils/truncateAddress';
 import { ARBITRUM_TOKENS } from './wagmi/constants';
 
-export const ZERO_X_API_KEY = import.meta.env.VITE_ZERO_X_API_KEY;
+// export const ZERO_X_API_KEY = import.meta.env.VITE_ZERO_X_API_KEY;
 
 const INVESTLY_LOGIC_ADDRESS = '0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f'; // some constant address
 
@@ -30,6 +30,8 @@ export const fetch0XSwapData = async () => {
 
   console.log({ params });
 };
+
+// call before deposit
 
 const approveSellToken = async () => {
   const tokenAddressFromInput = ARBITRUM_TOKENS[0]; // token selected
@@ -67,6 +69,8 @@ const approveSellToken = async () => {
   });
 };
 
+// InvestlyDCACoordinator: 0x269C36463d6284775A9B944A4Fa3cF02a08f6dE5 -> deposit
+
 const depositAmount = async () => {
   const tokenAddressFromInput = ARBITRUM_TOKENS[0]; // token selected
   const selectedChainId = 42161; // chain selected
@@ -81,16 +85,19 @@ const depositAmount = async () => {
   });
 };
 
+// call after deposit
+
 const addSubscription = async () => {
+  const selectedChainId = 42161;
   const quote = {}; // quote from 0x
   const params = {
     sellToken: quote.sellTokenAddress,
     buyToken: quote.buyTokenAddress,
     sellAmount: quote.sellAmount,
-    spender: quote.allowanceTarget,
-    swapTarget: quote.to,
-    swapCallData: quote.data,
-    value: quote.value,
+    // spender: quote.allowanceTarget,
+    // swapTarget: quote.to,
+    // swapCallData: quote.data,
+    // value: quote.value,
   }; // queue required as formatted as from `fetch0XSwapData` return
 
   const { hash } = writeContract({
@@ -103,11 +110,12 @@ const addSubscription = async () => {
 
   const receipt = waitForTransaction({ hash });
 
-  setupSybilCustomDataFetcher(receipt.blockNumber, receipt.subscription_id); // not sure about sub_id like that
+  // setupSybilCustomDataFetcher(receipt.blockNumber, receipt.subscription_id); // not sure about sub_id like that
 };
 
 const setupSybilCustomDataFetcher = (blockNumber, subscription_id) => {
   // const { createFeed } = useSybilData();
+  //  call method from the canister stage tysiw-qaaaa-aaaak-qcikq-cai
 
   createFeed({
     id: `investly_subscription_{user_address}_{subscription_id}`, // sub_id from response on write contract `addSubscription`
@@ -130,3 +138,51 @@ const setupSybilCustomDataFetcher = (blockNumber, subscription_id) => {
 };
 
 const setupPythiaSubscription = () => {};
+
+
+const create = async () => {
+  setIsCreating(true);
+
+  try {
+    await toast.promise(
+      createFeed({
+        id: feedId.toUpperCase(),
+        feed_type: {
+          Custom: null,
+        },
+        update_freq: +frequency * 60,
+        sources,
+        decimals: isPriceFeed ? [Number(decimals)] : [],
+        msg: addressData.message,
+        sig: remove0x(addressData.signature),
+      }),
+      {
+        pending: `Creating...`,
+        success: `Created successfully`,
+        error: {
+          render({ data }) {
+            logger.error('Create failed', data);
+            return `Create failed. ${data} Try again later.`;
+          },
+        },
+      }
+    );
+  } catch (error) {
+    logger.error(`Create feed`, error);
+  } finally {
+    setIsCreating(false);
+  }
+};
+
+
+const createFeed = async (feed: FeedRequest) => {
+  const res: GeneralResponse = await sybilCanister.create_custom_feed(feed);
+
+  console.log('create feed result', res);
+  if (res.Err) {
+    logger.error(`Failed to create feed, ${res.Err}`);
+    throw new Error(`${res.Err} Try again later.`);
+  }
+
+  return res;
+};

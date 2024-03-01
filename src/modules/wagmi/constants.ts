@@ -12,6 +12,14 @@ export type AnyCoinType = 'USDT' | 'USDC' | 'ETH' | 'MATIC' | 'BNB' | 'Card';
 export type CustomCoinType = 'USDT' | 'USDC';
 export type NativeCoinType = 'ETH' | 'MATIC' | 'BNB';
 
+export type Token = {
+  symbol: AnyCoinType;
+  label: string;
+  address: string;
+  decimals: number;
+  img: string;
+};
+
 export const WALLET_CONNECT_PROJECT_ID = import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID;
 
 export const WAGMI_METADATA = {
@@ -21,74 +29,7 @@ export const WAGMI_METADATA = {
   icons: import.meta.env.VITE_WAGMI_METADATA_ICONS ? JSON.parse(import.meta.env.VITE_WAGMI_METADATA_ICONS) : [],
 };
 
-export interface Coin {
-  title: AnyCoinType;
-  type: 'native' | 'custom' | 'card';
-  icon: string;
-  precision: number;
-  decimals: number;
-}
-
-export const CHAINS = [
-  {
-    key: 'base',
-    name: 'Base' as string,
-    nativeToken: 'eth',
-    mainnet: base,
-    testnet: baseSepolia,
-    img: baseIcon,
-    explorer: {
-      mainnet: 'https://basescan.org/',
-      testnet: 'https://sepolia.basescan.org/',
-    },
-    tokens: [
-      {
-        title: 'ETH',
-        type: 'native',
-        icon: ethIcon,
-        precision: 5,
-        decimals: 18,
-      },
-      {
-        title: 'USDT',
-        type: 'custom',
-        icon: tetherIcon,
-        precision: 1,
-        decimals: 6,
-      },
-    ],
-  },
-  {
-    key: 'arbitrum',
-    name: 'Arbitrum' as string,
-    nativeToken: 'eth',
-    mainnet: arbitrum,
-    testnet: arbitrumSepolia,
-    img: arbitrumIcon,
-    explorer: {
-      mainnet: 'https://arbiscan.io/',
-      testnet: 'https://sepolia.arbiscan.io/',
-    },
-    tokens: [
-      {
-        title: 'USDT',
-        type: 'custom',
-        icon: tetherIcon,
-        precision: 1,
-        decimals: 6,
-      },
-      {
-        title: 'ETH',
-        type: 'native',
-        icon: ethIcon,
-        precision: 5,
-        decimals: 18,
-      },
-    ],
-  },
-] as const;
-
-export const ARBITRUM_TOKENS = [
+export const ARBITRUM_TOKENS: Token[] = [
   {
     symbol: 'USDT' as AnyCoinType,
     label: 'Tether USD',
@@ -133,7 +74,7 @@ export const ARBITRUM_TOKENS = [
   },
 ];
 
-export const BASE_TOKENS = [
+export const BASE_TOKENS: Token[] = [
   {
     symbol: 'USDC' as AnyCoinType,
     label: 'USD Coin',
@@ -149,6 +90,35 @@ export const BASE_TOKENS = [
     img: wethIcon,
   },
 ];
+
+export const CHAINS = [
+  {
+    key: 'base',
+    name: 'Base' as string,
+    nativeToken: 'eth',
+    mainnet: base,
+    testnet: baseSepolia,
+    img: baseIcon,
+    explorer: {
+      mainnet: 'https://basescan.org/',
+      testnet: 'https://sepolia.basescan.org/',
+    },
+    tokens: BASE_TOKENS,
+  },
+  {
+    key: 'arbitrum',
+    name: 'Arbitrum' as string,
+    nativeToken: 'eth',
+    mainnet: arbitrum,
+    testnet: arbitrumSepolia,
+    img: arbitrumIcon,
+    explorer: {
+      testnet: 'https://arbiscan.io/',
+      mainnet: 'https://sepolia.arbiscan.io/',
+    },
+    tokens: ARBITRUM_TOKENS,
+  },
+] as const;
 
 export type MyChainKey = MyChain['key'];
 

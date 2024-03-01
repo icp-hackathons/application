@@ -1,7 +1,11 @@
+import { DAY_TAGS, WEEK_TAGS, MONTH_TAGS } from '@/modules/constants';
+import { Unit } from '@/utils/convertFrequencyToSeconds';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { Card, Flex, Input, Space } from 'antd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
+
+const FREQUENCY_PERIODS = ['Daily', 'Weekly', 'Monthly'];
 
 export const StyledInput = styled(Input)`
   border-radius: 0;
@@ -50,86 +54,101 @@ const StyledTextTab = styled.div<{ $isActive: boolean }>`
   ${(props) => props.$isActive && `color: white;`}
 `;
 
-const StyledButton = styled.button`
-  background: #273a3c;
-  border-radius: 14px;
-  border: none;
-  color: #77e5ef;
-  padding: 8px 24px;
-  cursor: pointer;
-  font-size: 18px;
-  width: 100%;
-`;
-
-const DAY_TAGS = [7, 14, 30];
-const WEEK_TAGS = [1, 2, 3, 4];
-
 type SetFrequencyProps = {
   frequency: string;
-  onFrequencyChange: (value: string) => void;
+  onFrequencyChange: (value: string, units: Unit) => void;
 };
 
 export const SetFrequency = ({ frequency, onFrequencyChange }: SetFrequencyProps) => {
-  const [activeTag, setActiveTag] = useState(7);
-  const [isDaily, setIsDaily] = useState(true);
-  const { open: openWeb3Modal } = useWeb3Modal();
+  const [activeTag, setActiveTag] = useState<number | null>(null);
+  const [period, setPeriod] = useState(FREQUENCY_PERIODS[0]);
 
-  const onDayTagClick = (day: string) => {
-    setActiveTag(+day);
-    onFrequencyChange(day);
+  const onTagClick = (tagNum: number, units: Unit) => {
+    setActiveTag(tagNum);
+    onFrequencyChange(tagNum.toString(), units);
   };
 
-  return (
-    <Card
-      title={
-        <Flex gap="small">
-          <StyledTextTab onClick={() => setIsDaily(true)} $isActive={isDaily}>
-            Daily
-          </StyledTextTab>
-          <StyledTextTab onClick={() => setIsDaily(false)} $isActive={!isDaily}>
-            Weekly
-          </StyledTextTab>
-        </Flex>
-      }
-    >
-      <Space size="middle" direction="vertical">
-        {isDaily ? (
+  useEffect(() => {
+    setActiveTag(null);
+    onFrequencyChange('0', 'day');
+  }, [period]);
+
+  const getFrequencyInput = (period: string) => {
+    switch (period) {
+      case 'Daily':
+        return (
           <Flex>
             <StyledInput
               value={frequency}
-              onChange={(e) => onFrequencyChange(e.target.value)}
+              onChange={(e) => onFrequencyChange(e.target.value, 'day')}
               id="frequency"
               placeholder="How many days?"
               autoComplete="off"
             />
             <Space size="small">
               {DAY_TAGS.map((day) => (
-                <StyledDayTag key={day} onClick={() => onDayTagClick(day)} $isActive={activeTag === day}>
+                <StyledDayTag key={day} onClick={() => onTagClick(day, 'day')} $isActive={activeTag === day}>
                   {day}
                 </StyledDayTag>
               ))}
             </Space>
           </Flex>
-        ) : (
+        );
+      case 'Weekly':
+        return (
           <Flex>
             <StyledInput
               value={frequency}
-              onChange={(e) => onFrequencyChange(e.target.value)}
+              onChange={(e) => onFrequencyChange(e.target.value, 'week')}
               id="frequency"
               placeholder="Enter frequency"
               autoComplete="off"
             />
             <Space size="small">
               {WEEK_TAGS.map((week) => (
-                <StyledDayTag key={week} onClick={() => onDayTagClick(week.toString())} $isActive={activeTag === week}>
+                <StyledDayTag key={week} onClick={() => onTagClick(week, 'week')} $isActive={activeTag === week}>
                   {week}
                 </StyledDayTag>
               ))}
             </Space>
           </Flex>
-        )}
+        );
+      case 'Monthly':
+        return (
+          <Flex>
+            <StyledInput
+              value={frequency}
+              onChange={(e) => onFrequencyChange(e.target.value, 'month')}
+              id="frequency"
+              placeholder="Enter frequency"
+              autoComplete="off"
+            />
+            <Space size="small">
+              {MONTH_TAGS.map((month) => (
+                <StyledDayTag key={month} onClick={() => onTagClick(month, 'month')} $isActive={activeTag === month}>
+                  {month}
+                </StyledDayTag>
+              ))}
+            </Space>
+          </Flex>
+        );
+    }
+  };
 
-        <StyledButton onClick={() => openWeb3Modal()}>Connect</StyledButton>
+  return (
+    <Card
+      title={
+        <Flex gap="small">
+          {FREQUENCY_PERIODS.map((p) => (
+            <StyledTextTab key={p} $isActive={period === p} onClick={() => setPeriod(p)}>
+              {p}
+            </StyledTextTab>
+          ))}
+        </Flex>
+      }
+    >
+      <Space size="middle" direction="vertical" style={{ width: ' 100%' }}>
+        {getFrequencyInput(period)}
       </Space>
     </Card>
   );
